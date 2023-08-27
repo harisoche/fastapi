@@ -1,7 +1,10 @@
 from sqlalchemy import Column, Integer, String, DateTime, SmallInteger, Boolean
 from sqlalchemy import false, true
-from database import Base
+from app.database import Base, db
 from datetime import datetime
+from sqlalchemy import select, update, delete
+from app.schema.user_schema import UserBaseSchema, UserUpdateSchema
+from fastapi import HTTPException, status
 
 
 class User(Base):
@@ -13,6 +16,7 @@ class User(Base):
     email = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     token = Column(String(255), nullable=True)
+    expired_at = Column(DateTime, nullable=True)
     role_id = Column(SmallInteger, nullable=False)
     is_active = Column(Boolean, nullable=False, default=true())
     is_verified = Column(Boolean, nullable=True, default=false())
@@ -21,3 +25,62 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(fullName={self.full_name})>"
+
+    @classmethod
+    async def create(cls, obj: UserBaseSchema):
+        # Create a user instance using the provided data from UserBaseSchema
+        user = cls(**dict(obj))
+
+        # Add the user instance to the session
+        db.add(user)
+
+        try:
+            # Attempt to commit changes to the database
+            await db.commit()
+        except:
+            # If an error occurs during commit, rollback the changes
+            await db.rollback()
+            # Raise an HTTPException to indicate a bad request
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+
+        # Return the user instance
+        return user
+
+    @classmethod
+    async def get_by_id(cls, id: int):
+        # Execute a SELECT query to retrieve a user by their ID
+        user = await db.execute(select(cls).where(cls.id == id))
+        # Return the user as a scalar result (or Raise an HTTPException if not found)
+        user = user.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        return user
+
+    @classmethod
+    async def update(cls, obj: dict):
+        # Execute an UPDATE query to update a user by their ID
+        await db.execute(update(cls).where(cls.id == obj['id']).values(obj))
+        # Commit the changes to the database
+        try:
+            await db.commit()
+        except:
+            await db.rollback()
+            # Raise an HTTPException to indicate server error
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+        return obj
+
+    @classmethod
+    async def delete(cls, id: int):
+        # Execute a DELETE query to delete a user by their ID
+        await db.execute(delete(cls).where(cls.id == id))
+        # Commit the changes to the database
+        try:
+            await db.commit()
+        except:
+            await db.rollback()
+            # Raise an HTTPException to indicate server error
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+        return True
