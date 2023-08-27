@@ -6,3 +6,7 @@ def mapping_null_values(new_data: dict, old_data: dict):
 
     old_data.pop("_sa_instance_state", None)
     return old_data
+
+# def model_to_dict(model):
+#     return {key: getattr(model, key) for key in model.__dict__.keys() if not key.startswith('_')}
+    # return {c.name: getattr(model, c.name) for c in model.__table__.columns}

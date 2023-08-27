@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String, DateTime, SmallInteger, Boolean
 from sqlalchemy import false, true
 from app.database import Base, db
 from datetime import datetime
-from sqlalchemy import select, update, delete
-from app.schema.user_schema import UserBaseSchema, UserUpdateSchema
+from sqlalchemy import select, update, delete, or_
+from app.schema.user_schema import UserBaseSchema
 from fastapi import HTTPException, status
 
 
@@ -84,3 +84,33 @@ class User(Base):
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
         return True
+    
+    @classmethod
+    async def get_by_email_or_username(cls, param: str):
+        # Execute a SELECT query to retrieve a user by their email or username
+        user = await db.execute(select(cls).where(or_(cls.email == param, cls.username == param)))
+        # Return the user as a scalar result (or Raise an HTTPException if not found)
+        user = user.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        return user
+    
+    @classmethod
+    async def get_by_token(cls, token: str):
+        # Execute a SELECT query to retrieve a user by their token
+        user = await db.execute(select(cls).where(cls.token == token))
+        # Return the user as a scalar result (or Raise an HTTPException if not found)
+        user = user.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+        return user
+    
+    @staticmethod
+    async def commit():
+        try:
+            await db.commit()
+        except:
+            await db.rollback()
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

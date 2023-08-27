@@ -1,6 +1,7 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Header, HTTPException
 from app.logics import UserLogic
 from app.schema import UserBaseSchema, UserResponseSchema, UserUpdateSchema
+from app.logics import token_validator
 
 
 router = APIRouter(
@@ -13,8 +14,10 @@ async def create_user(user: UserBaseSchema):
     return await UserLogic.create(user)
 
 @router.get("/{id}", response_model=UserResponseSchema, status_code=status.HTTP_200_OK)
-async def get_user_by_id(id: int):
-    return await UserLogic.get_by_id(id)
+async def get_user_by_id(id: int, token:str = Header(None)):
+    auth = await token_validator(token)
+    if auth:
+        return await UserLogic.get_by_id(id, auth.username)
 
 @router.put("/", response_model=UserResponseSchema, status_code=status.HTTP_200_OK)
 async def update_user(user: UserUpdateSchema):
