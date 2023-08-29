@@ -1,4 +1,4 @@
-from app.models import User
+from app.models import User, Address
 from app.schema import UserBaseSchema, UserUpdateSchema, UserWithAddressSchema, AddressBaseSchema
 from app.logics import generate_password
 from app.utils import mapping_null_values
@@ -41,11 +41,8 @@ class UserLogic:
 
     @staticmethod
     async def get_with_address(user_id: int):
-        print(f"user_id: {user_id}")
-
         user = await User.get_by_id(user_id)
         if user:
-            print(f"User: {user}")
             addresses = await Address.get_by_user_id(user.id)
 
             address_schemas = [
