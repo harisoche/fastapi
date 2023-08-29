@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
-
+from typing import Optional, List
+from .address_schema import AddressBaseSchema
 
 class UserBaseSchema(BaseModel):
     full_name: str
@@ -33,6 +33,15 @@ class UserResponseSchema(UserBaseSchema):
     is_verified: bool
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class UserWithAddressSchema(UserBaseSchema):
+    id: int
+    password: Optional[str] = None
+    addresses: List[AddressBaseSchema]
 
     class Config:
         orm_mode = True

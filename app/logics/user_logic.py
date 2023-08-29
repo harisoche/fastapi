@@ -1,5 +1,5 @@
 from app.models import User
-from app.schema import UserBaseSchema, UserUpdateSchema
+from app.schema import UserBaseSchema, UserUpdateSchema, UserWithAddressSchema, AddressBaseSchema
 from app.logics import generate_password
 from app.utils import mapping_null_values
 from fastapi import HTTPException, status
@@ -38,3 +38,33 @@ class UserLogic:
         await User.delete(id)
 
         return {"message": "User deleted successfully"}
+
+    @staticmethod
+    async def get_with_address(user_id: int):
+        print(f"user_id: {user_id}")
+
+        user = await User.get_by_id(user_id)
+        if user:
+            print(f"User: {user}")
+            addresses = await Address.get_by_user_id(user.id)
+
+            address_schemas = [
+                AddressBaseSchema(
+                    address=address.address,
+                    province=address.province,
+                    city=address.city,
+                    postal_code=address.postal_code,
+                    country=address.country,
+                    is_primary=address.is_primary
+                )
+                for address in addresses
+            ]
+
+            return UserWithAddressSchema(
+                id=user.id,
+                full_name=user.full_name,
+                username=user.username,
+                email=user.email,
+                role_id=user.role_id,
+                addresses=address_schemas
+            )
